@@ -1,6 +1,6 @@
 # config valid for current version and patch releases of Capistrano
 lock "~> 3.10.1"
-
+server '104.198.34.99', user: 'claudioonohara', roles: %w{app db web}
 set :application, "google_test"
 set :repo_url, "git@github.com:claudioonohara/google_test.git"
 
