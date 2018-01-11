@@ -34,7 +34,7 @@ gem 'jbuilder', '~> 2.5'
 
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
-gem 'puma', '~> 3.9', '>= 3.9.1'
+gem 'puma', '3.6' 
 group :development do
   gem 'capistrano', '~> 3.9'
   gem 'capistrano-bundler', '~> 1.2'
