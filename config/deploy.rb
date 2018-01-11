@@ -1,73 +1,76 @@
-# config valid for current version and patch releases of Capistrano
-lock "~> 3.10.1"
-server '104.198.34.99', user: 'claudioonohara', roles: %w{app db web}
-set :application, "google_test"
-set :repo_url, "git@github.com:claudioonohara/google_test.git"
+#
+# bundle exec cap staging deploy:setup_config
+# bundle exec cap staging deploy
+#
 
-# Definições padrões do Rbenv
-    set :rbenv_ruby, File.read('.ruby-version').strip  
-    set :rbenv_prefix, "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"  
-    set :rbenv_roles, :all
-    
-    # Repare nesse caminho, eh o mesmo onde ficara o banco de dados da produção
-    set :deploy_to, '/home/claudioonohara/apps/google_test'
-    
-    # Linka arquivos e pastas
-    append :linked_files, 'config/database.yml', 'config/secrets.yml', 'config/application.yml'
-    
-    append :linked_dirs, 'log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'public/system'
-    
-    # Define a quantidade de releases no server
-    set :keep_releases, 1
-    
-    # Definições da task upload dentro do namespace figaro
-    namespace :figaro do  
-      task :upload do    
-        on roles(:all) do
-          # cria a pasta shared/config antes de mandar os arquivos pra lá
-          execute "mkdir -p #{shared_path}/config"
-    
-          upload! 'config/secrets.yml', "#{shared_path}/config/secrets.yml"
-          upload! 'config/database.yml', "#{shared_path}/config/database.yml"
-          upload! 'config/application.yml', "#{shared_path}/config/application.yml"
-        end
-      end
-    end
-    
-    # Rodar antes do check deploy a task upload (logo acima)
-    before 'deploy:check', 'figaro:upload' 
+lock '3.10.1'
 
+set :application, 'google_test'
+set :repo_url, 'git@github.com:claudioonohara/google_test.git' # Put Git url (Ex: git@github.com:user/repo.git)
+set :deploy_user, 'claudioonohara'
+set :pty, true
+set :rbenv_path, '/home/claudioonohara/.rbenv'
+ 
+set :rbenv_type, :system
+set :rbenv_ruby, '2.5.0'
+set :rbenv_prefix,
+    "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"
+set :rbenv_map_bins, %w(rake gem bundle ruby rails)
 
-# Default branch is :master
-# ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
+set :keep_releases, 5
 
-# Default deploy_to directory is /var/www/my_app_name
-# set :deploy_to, "/var/www/my_app_name"
+set :bundle_binstubs, nil
 
-# Default value for :format is :airbrussh.
-# set :format, :airbrussh
+set :linked_files, %w(config/application.yml config/database.yml config/secrets.yml)
 
-# You can configure the Airbrussh format using :format_options.
-# These are the defaults.
-# set :format_options, command_output: true, log_file: "log/capistrano.log", color: :auto, truncate: :auto
+set(
+  :linked_dirs,
+  %w(log tmp/pids tmp/states tmp/sockets tmp/cache vendor/bundle public/system)
+)
 
-# Default value for :pty is false
-# set :pty, true
+# which config files should be copied by deploy:setup_config
+# see documentation in lib/capistrano/tasks/setup_config.cap
+# for details of operations
+set(
+  :config_files,
+  %w(
+    nginx.conf
+    application.yml.template
+    database.yml.template
+    secrets.yml.template
+    log_rotation
+    puma.rb
+    puma_init.sh
+  )
+)
 
-# Default value for :linked_files is []
-# append :linked_files, "config/database.yml", "config/secrets.yml"
+set(:executable_config_files, %w(puma_init.sh))
 
-# Default value for linked_dirs is []
-# append :linked_dirs, "log", "tmp/pids", "tmp/cache", "tmp/sockets", "public/system"
+set(
+  :symlinks,
+  [
+    {
+      source: 'nginx.conf',
+      link: '/etc/nginx/sites-enabled/{{full_app_name}}.conf'
+    },
+    {
+      source: 'puma_init.sh',
+      link: '/etc/init.d/puma_{{full_app_name}}'
+    },
+    {
+      source: 'log_rotation',
+      link: '/etc/logrotate.d/{{full_app_name}}'
+    }
+  ]
+)
 
-# Default value for default_env is {}
-# set :default_env, { path: "/opt/ruby/bin:$PATH" }
-
-# Default value for local_user is ENV['USER']
-# set :local_user, -> { `git config user.name`.chomp }
-
-# Default value for keep_releases is 5
-# set :keep_releases, 5
-
-# Uncomment the following to require manually verifying the host key before first deploy.
-# set :ssh_options, verify_host_key: :secure
+namespace :deploy do
+  before :deploy, 'deploy:check_revision'
+  # before :deploy, "deploy:run_tests"
+  # after 'deploy:symlink:shared', 'deploy:compile_assets_locally'
+  after :finishing, 'deploy:cleanup'
+  before 'deploy:setup_config', 'nginx:remove_default_vhost'
+  after 'deploy:setup_config', 'nginx:reload'
+  #after 'deploy:setup_config', 'monit:restart'
+  after 'deploy:publishing', 'remote:restart'
+end
