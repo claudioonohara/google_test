@@ -5,6 +5,9 @@
 
 lock '3.10.1'
 
+SSHKit.config.command_map.prefix[:puma].push("bundle exec")
+SSHKit.config.command_map.prefix[:pumactl].push("bundle exec")
+
 set :application, 'google_test'
 set :repo_url, 'git@github.com:claudioonohara/google_test.git' # Put Git url (Ex: git@github.com:user/repo.git)
 set :deploy_user, 'claudioonohara'
@@ -27,6 +30,8 @@ set(
   :linked_dirs,
   %w(log tmp/pids tmp/states tmp/sockets tmp/cache vendor/bundle public/system)
 )
+
+
 
 # which config files should be copied by deploy:setup_config
 # see documentation in lib/capistrano/tasks/setup_config.cap
