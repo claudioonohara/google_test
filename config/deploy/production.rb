@@ -1,7 +1,7 @@
 set :stage, :production
 set :branch, 'master'
 
-set :server_name, 'application.prod'
+set :server_name, 'teste.claudioonohara.eti.br'
 set :server_port, 80
 set :server_port_ssl, 443
 
