@@ -18,5 +18,7 @@
 
 # Config
 /config/application.yml
+/config/database.yml
+/config/secrets.yml
 /public/uploads/*
 /public/files/*
